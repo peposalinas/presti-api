@@ -14,6 +14,8 @@ import {
   LIMITES_SUSCRIPCION,
 } from './constants/limites-suscripcion.constants';
 import { CreateSuscripcionDto } from './dto/create-suscripcion.dto';
+import { DetalleSuscripcionDto } from './dto/detalle-suscripcion.dto';
+import { TipoSuscripcion } from './enums/tipo-suscripcion.enum';
 import { ClienteSuscripcion } from './entities/cliente-suscripcion.entity';
 import { RegistroUso } from './entities/registro-uso.entity';
 
@@ -137,6 +139,13 @@ export class SuscripcionesService {
     }
 
     return registro;
+  }
+
+  getPlanes(): DetalleSuscripcionDto[] {
+    return Object.values(TipoSuscripcion).map((tipo) => ({
+      tipo,
+      limites: { ...LIMITES_SUSCRIPCION[tipo] },
+    }));
   }
 
   // ── Helpers ───────────────────────────────────────────────────────────────

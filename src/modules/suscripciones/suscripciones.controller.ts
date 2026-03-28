@@ -1,6 +1,7 @@
 import { Body, Controller, Get, Post } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CurrentCliente } from '../auth/decorators/current-cliente.decorator';
+import { Public } from '../auth/decorators/public.decorator';
 import { CreateSuscripcionDto } from './dto/create-suscripcion.dto';
 import { SuscripcionesService } from './suscripciones.service';
 
@@ -9,6 +10,13 @@ import { SuscripcionesService } from './suscripciones.service';
 @Controller('suscripciones')
 export class SuscripcionesController {
   constructor(private readonly suscripcionesService: SuscripcionesService) {}
+
+  @Get()
+  @Public()
+  @ApiOperation({ summary: 'Listar los planes de suscripción disponibles con sus límites' })
+  getPlanes() {
+    return this.suscripcionesService.getPlanes();
+  }
 
   @Post()
   @ApiOperation({ summary: 'Asignar o cambiar la suscripción del cliente' })
