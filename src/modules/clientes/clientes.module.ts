@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ApiKeyAuthGuard } from '../auth/guards/api-key-auth.guard';
+import { JwtOrApiKeyAuthGuard } from '../auth/guards/jwt-or-api-key-auth.guard';
 import { SuscripcionesModule } from '../suscripciones/suscripciones.module';
 import { ApiKeysController } from './api-keys.controller';
 import { ApiKeysService } from './api-keys.service';
@@ -12,7 +13,7 @@ import { Cliente } from './entities/cliente.entity';
 @Module({
   imports: [TypeOrmModule.forFeature([Cliente, ApiKey]), SuscripcionesModule],
   controllers: [ApiKeysController, ClientesController],
-  providers: [ClientesService, ApiKeysService, ApiKeyAuthGuard],
-  exports: [ClientesService, ApiKeysService, ApiKeyAuthGuard],
+  providers: [ClientesService, ApiKeysService, ApiKeyAuthGuard, JwtOrApiKeyAuthGuard],
+  exports: [ClientesService, ApiKeysService, ApiKeyAuthGuard, JwtOrApiKeyAuthGuard],
 })
 export class ClientesModule {}

@@ -9,9 +9,12 @@ import {
   Patch,
   Post,
   Query,
+  UseGuards,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiQuery, ApiSecurity, ApiTags } from '@nestjs/swagger';
 import { CurrentCliente } from '../auth/decorators/current-cliente.decorator';
+import { Public } from '../auth/decorators/public.decorator';
+import { JwtOrApiKeyAuthGuard } from '../auth/guards/jwt-or-api-key-auth.guard';
 import { CreateRecomendacionDto } from './dto/create-recomendacion.dto';
 import { CreateReglaDto } from './dto/create-regla.dto';
 import { UpdateRecomendacionDto } from './dto/update-recomendacion.dto';
@@ -100,9 +103,13 @@ export class MotorReglasController {
   }
 
   @ApiTags('Recomendaciones')
+  @Public()
+  @UseGuards(JwtOrApiKeyAuthGuard)
   @Post('recomendaciones')
+  @ApiBearerAuth()
+  @ApiSecurity('x-api-key')
   @ApiOperation({
-    summary: 'Evaluar reglas para un usuario y generar recomendaciones de productos',
+    summary: 'Evaluar reglas para un usuario y generar recomendaciones de productos (JWT o API Key)',
   })
   createRecomendacion(
     @Body() dto: CreateRecomendacionDto,
