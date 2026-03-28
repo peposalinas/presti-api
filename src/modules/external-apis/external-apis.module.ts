@@ -2,6 +2,12 @@ import { Module } from '@nestjs/common';
 import { HttpModule } from '@nestjs/axios';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { BcraService } from './bcra/bcra.service';
+import { ChequeRechazado } from './entities/cheque-rechazado.entity';
+import { DeudaEntidad } from './entities/deuda-entidad.entity';
+import { DeudaHistoricaEntidad } from './entities/deuda-historica-entidad.entity';
+import { DeudaHistoricaPeriodo } from './entities/deuda-historica-periodo.entity';
+import { DeudaPeriodo } from './entities/deuda-periodo.entity';
+import { Persona } from './entities/persona.entity';
 import { DeudaActual } from './entities/deuda-actual.entity';
 import { Entidad } from './entities/entidad.entity';
 import { HistorialCrediticio } from './entities/historial-crediticio.entity';
@@ -14,7 +20,12 @@ import { VerazService } from './veraz/veraz.service';
       timeout: 10000,
       maxRedirects: 3,
     }),
-    TypeOrmModule.forFeature([Entidad, Persona, DeudaActual, HistorialCrediticio]),
+    TypeOrmModule.forFeature([
+      Entidad, Persona, DeudaActual, HistorialCrediticio,
+      Persona, DeudaPeriodo, DeudaEntidad,
+      DeudaHistoricaPeriodo, DeudaHistoricaEntidad,
+      ChequeRechazado,
+    ]),
   ],
   providers: [BcraService, VerazService],
   exports: [BcraService, VerazService],

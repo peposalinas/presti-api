@@ -4,9 +4,11 @@ import { config } from 'dotenv';
 import { DataSource, DataSourceOptions } from 'typeorm';
 import { ApiKey } from '../modules/clientes/entities/api-key.entity';
 import { Cliente } from '../modules/clientes/entities/cliente.entity';
-import { DeudaActual } from '../modules/external-apis/entities/deuda-actual.entity';
-import { Entidad } from '../modules/external-apis/entities/entidad.entity';
-import { HistorialCrediticio } from '../modules/external-apis/entities/historial-crediticio.entity';
+import { ChequeRechazado } from '../modules/external-apis/entities/cheque-rechazado.entity';
+import { DeudaEntidad } from '../modules/external-apis/entities/deuda-entidad.entity';
+import { DeudaHistoricaEntidad } from '../modules/external-apis/entities/deuda-historica-entidad.entity';
+import { DeudaHistoricaPeriodo } from '../modules/external-apis/entities/deuda-historica-periodo.entity';
+import { DeudaPeriodo } from '../modules/external-apis/entities/deuda-periodo.entity';
 import { Persona } from '../modules/external-apis/entities/persona.entity';
 import { Recomendacion } from '../modules/motor-reglas/entities/recomendacion.entity';
 import { Regla } from '../modules/motor-reglas/entities/regla.entity';
@@ -33,7 +35,8 @@ export const dataSourceOptions: DataSourceOptions = {
     Usuario,
     TipoProducto, Producto,
     Regla, Recomendacion,
-    Entidad, Persona, DeudaActual, HistorialCrediticio,
+    Persona, DeudaPeriodo, DeudaEntidad,
+    DeudaHistoricaPeriodo, DeudaHistoricaEntidad, ChequeRechazado,
   ],
   migrations: [__dirname + '/migrations/*{.ts,.js}'],
   synchronize: false,

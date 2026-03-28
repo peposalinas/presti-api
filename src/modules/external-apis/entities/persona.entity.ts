@@ -1,34 +1,35 @@
-import { Column, Entity, OneToMany, PrimaryColumn } from 'typeorm';
-import { DeudaActual } from './deuda-actual.entity';
-import { HistorialCrediticio } from './historial-crediticio.entity';
+import {
+  Column,
+  CreateDateColumn,
+  Entity,
+  OneToMany,
+  PrimaryColumn,
+  UpdateDateColumn,
+} from 'typeorm';
+import { DeudaPeriodo } from './deuda-periodo.entity';
+import { DeudaHistoricaPeriodo } from './deuda-historica-periodo.entity';
+import { ChequeRechazado } from './cheque-rechazado.entity';
 
-@Entity('personas')
+@Entity('persona')
 export class Persona {
-  // CUIL de 11 dígitos almacenado como string para preservar ceros iniciales
-  @PrimaryColumn({ type: 'varchar', length: 11 })
-  cuil: string;
+  @PrimaryColumn({ type: 'bigint' })
+  identificacion: number;
 
-  @Column({ type: 'varchar', length: 1, nullable: true })
-  sexo_inferido: string | null;
+  @Column({ type: 'varchar', length: 255 })
+  denominacion: string;
 
-  @Column({ type: 'int', nullable: true })
-  edad_estimada: number | null;
+  @CreateDateColumn()
+  created_at: Date;
 
-  // Fecha del archivo 1DSF que originó la situación crediticia inicial
-  @Column({ type: 'date', nullable: true })
-  fecha_origen_situacion_1: Date | null;
+  @UpdateDateColumn()
+  updated_at: Date;
 
-  // Mejor situación crediticia observada (1=normal, 6=irrecuperable)
-  @Column({ type: 'int', nullable: true })
-  mejor_situacion: number | null;
+  @OneToMany(() => DeudaPeriodo, (d) => d.persona)
+  deudas_periodo: DeudaPeriodo[];
 
-  // Peor situación crediticia observada
-  @Column({ type: 'int', nullable: true })
-  peor_situacion: number | null;
+  @OneToMany(() => DeudaHistoricaPeriodo, (d) => d.persona)
+  deudas_historicas_periodo: DeudaHistoricaPeriodo[];
 
-  @OneToMany(() => DeudaActual, (d) => d.persona)
-  deudas_actuales: DeudaActual[];
-
-  @OneToMany(() => HistorialCrediticio, (h) => h.persona)
-  historial_crediticio: HistorialCrediticio[];
+  @OneToMany(() => ChequeRechazado, (c) => c.persona)
+  cheques_rechazados: ChequeRechazado[];
 }
