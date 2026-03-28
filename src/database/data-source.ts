@@ -2,6 +2,17 @@ import 'reflect-metadata';
 import { setDefaultResultOrder } from 'dns';
 import { config } from 'dotenv';
 import { DataSource, DataSourceOptions } from 'typeorm';
+import { ApiKey } from '../modules/clientes/entities/api-key.entity';
+import { Cliente } from '../modules/clientes/entities/cliente.entity';
+import { DeudaActual } from '../modules/external-apis/entities/deuda-actual.entity';
+import { Entidad } from '../modules/external-apis/entities/entidad.entity';
+import { HistorialCrediticio } from '../modules/external-apis/entities/historial-crediticio.entity';
+import { Persona } from '../modules/external-apis/entities/persona.entity';
+import { Recomendacion } from '../modules/motor-reglas/entities/recomendacion.entity';
+import { Regla } from '../modules/motor-reglas/entities/regla.entity';
+import { TipoProducto } from '../modules/productos/entities/tipo-producto.entity';
+import { Producto } from '../modules/productos/entities/producto.entity';
+import { Usuario } from '../modules/usuarios/entities/usuario.entity';
 
 // Fuerza resolución DNS en IPv4 (evita ENETUNREACH en hosts con IPv6)
 setDefaultResultOrder('ipv4first');
@@ -17,7 +28,13 @@ export const dataSourceOptions: DataSourceOptions = {
   username: process.env.DB_USERNAME,
   password: process.env.DB_PASSWORD,
   database: process.env.DB_DATABASE,
-  entities: [__dirname + '/../../**/*.entity{.ts,.js}'],
+  entities: [
+    Cliente, ApiKey,
+    Usuario,
+    TipoProducto, Producto,
+    Regla, Recomendacion,
+    Entidad, Persona, DeudaActual, HistorialCrediticio,
+  ],
   migrations: [__dirname + '/migrations/*{.ts,.js}'],
   synchronize: false,
   migrationsRun: false,

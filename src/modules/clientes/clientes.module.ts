@@ -10,7 +10,7 @@ import { Cliente } from './entities/cliente.entity';
 
 @Module({
   imports: [TypeOrmModule.forFeature([Cliente, ApiKey])],
-  controllers: [ClientesController, ApiKeysController],
+  controllers: [ApiKeysController, ClientesController],
   providers: [ClientesService, ApiKeysService, ApiKeyAuthGuard],
   exports: [ClientesService, ApiKeysService, ApiKeyAuthGuard],
 })
