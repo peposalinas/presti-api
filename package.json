@@ -18,7 +18,8 @@
     "test:cov": "jest --coverage",
     "migrations:generate": "sh -c 'typeorm-ts-node-commonjs migration:generate -d src/database/data-source.ts src/database/migrations/$0'",
     "migrations:run": "typeorm-ts-node-commonjs migration:run -d src/database/data-source.ts",
-    "migrations:revert": "typeorm-ts-node-commonjs migration:revert -d src/database/data-source.ts"
+    "migrations:revert": "typeorm-ts-node-commonjs migration:revert -d src/database/data-source.ts",
+    "@nestjs/cli": "^10.0.0"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
@@ -48,7 +49,6 @@
     "typeorm": "^0.3.20"
   },
   "devDependencies": {
-    "@nestjs/cli": "^10.0.0",
     "@nestjs/schematics": "^10.0.0",
     "@nestjs/testing": "^10.0.0",
     "@types/bcrypt": "^6.0.0",

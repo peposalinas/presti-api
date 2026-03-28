@@ -1,12 +1,8 @@
-import { IsString, MaxLength, IsDateString, IsOptional } from 'class-validator';
+import { IsString, MaxLength, IsOptional } from 'class-validator';
 
 export class UpdateUsuarioDto {
   @IsOptional()
   @IsString()
   @MaxLength(100)
   nombre?: string;
-
-  @IsOptional()
-  @IsDateString()
-  fechaNacimiento?: string;
 }

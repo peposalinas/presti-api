@@ -15,22 +15,22 @@ export class UsuariosService {
   ) {}
 
   findAll(clienteId: string): Promise<Usuario[]> {
-    return this.usuarioRepository.find({ where: { clienteId } });
+    return this.usuarioRepository.find({ where: { cliente: { id: clienteId } } });
   }
 
   async findOne(cuil: string, clienteId: string): Promise<Usuario> {
     const usuario = await this.usuarioRepository.findOne({
-      where: { cuil, clienteId },
+      where: { cuil, cliente: { id: clienteId } },
     });
     if (!usuario) throw new NotFoundException(`Usuario ${cuil} no encontrado`);
     return usuario;
   }
 
   async create(dto: CreateUsuarioDto, clienteId: string): Promise<Usuario> {
-    const count = await this.usuarioRepository.count({ where: { clienteId } });
+    const count = await this.usuarioRepository.count({ where: { cliente: { id: clienteId } } });
     await this.suscripcionesService.verificarLimite(clienteId, 'maxUsuarios', count);
 
-    const usuario = this.usuarioRepository.create({ ...dto, clienteId });
+    const usuario = this.usuarioRepository.create({ ...dto, cliente: { id: clienteId } });
     return this.usuarioRepository.save(usuario);
   }
 

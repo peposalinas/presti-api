@@ -1,4 +1,4 @@
-import { IsString, MaxLength, IsDateString, Length } from 'class-validator';
+import { IsString, MaxLength, Length } from 'class-validator';
 
 export class CreateUsuarioDto {
   @IsString()
@@ -8,7 +8,4 @@ export class CreateUsuarioDto {
   @IsString()
   @MaxLength(100)
   nombre: string;
-
-  @IsDateString()
-  fechaNacimiento: string;
 }
