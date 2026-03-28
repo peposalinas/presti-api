@@ -1,4 +1,4 @@
-import { IsBoolean, IsDateString } from 'class-validator';
+import { IsBoolean, IsDateString, IsString } from 'class-validator';
 
 export class CreateRecomendacionDto {
   @IsDateString()
@@ -6,4 +6,10 @@ export class CreateRecomendacionDto {
 
   @IsBoolean()
   exito: boolean;
+
+  @IsString()
+  productoId: string;
+
+  @IsString()
+  usuarioId: string;
 }

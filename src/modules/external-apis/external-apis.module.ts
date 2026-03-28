@@ -17,9 +17,8 @@ import { VerazService } from './veraz/veraz.service';
       maxRedirects: 3,
     }),
     TypeOrmModule.forFeature([
-      Persona, DeudaPeriodo, DeudaEntidad,
-      DeudaHistoricaPeriodo, DeudaHistoricaEntidad,
-      ChequeRechazado,
+      ChequeRechazado, DeudaEntidad, DeudaHistoricaEntidad,
+      DeudaHistoricaPeriodo, DeudaPeriodo, Persona,
     ]),
   ],
   providers: [BcraService, VerazService],

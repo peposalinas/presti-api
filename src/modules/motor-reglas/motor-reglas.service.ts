@@ -14,7 +14,7 @@ export class MotorReglasService {
     private readonly reglaRepository: Repository<Regla>,
     @InjectRepository(Recomendacion)
     private readonly recomendacionRepository: Repository<Recomendacion>,
-  ) {}
+  ) { }
 
   // ── Reglas ────────────────────────────────────────────────────────────────
 
@@ -57,14 +57,14 @@ export class MotorReglasService {
 
   findAllRecomendaciones(clienteId: string): Promise<Recomendacion[]> {
     return this.recomendacionRepository.find({
-      where: { clienteId },
+      where: { cliente: { id: clienteId } },
       order: { timestamp: 'DESC' },
     });
   }
 
   async findOneRecomendacion(id: string, clienteId: string): Promise<Recomendacion> {
     const rec = await this.recomendacionRepository.findOne({
-      where: { id, clienteId },
+      where: { id, cliente: { id: clienteId } },
     });
     if (!rec) throw new NotFoundException(`Recomendacion ${id} no encontrada`);
     return rec;
@@ -74,7 +74,13 @@ export class MotorReglasService {
     dto: CreateRecomendacionDto,
     clienteId: string,
   ): Promise<Recomendacion> {
-    const rec = this.recomendacionRepository.create({ ...dto, clienteId });
+    const { productoId, usuarioId, ...rest } = dto;
+    const rec = this.recomendacionRepository.create({
+      ...rest,
+      cliente: { id: clienteId },
+      producto: { id: productoId },
+      usuario: { cuil: usuarioId },
+    });
     return this.recomendacionRepository.save(rec);
   }
 }
