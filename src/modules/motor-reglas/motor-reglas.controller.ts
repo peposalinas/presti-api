@@ -74,8 +74,12 @@ export class MotorReglasController {
   // ── Recomendaciones ───────────────────────────────────────────────────────
 
   @ApiTags('Recomendaciones')
+  @Public()
+  @UseGuards(JwtOrApiKeyAuthGuard)
   @Get('recomendaciones')
-  @ApiOperation({ summary: 'Listar recomendaciones con filtros opcionales' })
+  @ApiBearerAuth()
+  @ApiSecurity('x-api-key')
+  @ApiOperation({ summary: 'Listar recomendaciones con filtros opcionales (JWT o API Key)' })
   @ApiQuery({ name: 'usuarioCuil', required: false })
   @ApiQuery({ name: 'productoId', required: false })
   @ApiQuery({ name: 'tipoProductoId', required: false })
@@ -93,8 +97,12 @@ export class MotorReglasController {
   }
 
   @ApiTags('Recomendaciones')
+  @Public()
+  @UseGuards(JwtOrApiKeyAuthGuard)
   @Get('recomendaciones/:id')
-  @ApiOperation({ summary: 'Obtener una recomendación' })
+  @ApiBearerAuth()
+  @ApiSecurity('x-api-key')
+  @ApiOperation({ summary: 'Obtener una recomendación (JWT o API Key)' })
   findOneRecomendacion(
     @Param('id') id: string,
     @CurrentCliente() clienteId: string,
@@ -119,8 +127,12 @@ export class MotorReglasController {
   }
 
   @ApiTags('Recomendaciones')
+  @Public()
+  @UseGuards(JwtOrApiKeyAuthGuard)
   @Patch('recomendaciones/:id')
-  @ApiOperation({ summary: 'Registrar si una recomendación tuvo éxito' })
+  @ApiBearerAuth()
+  @ApiSecurity('x-api-key')
+  @ApiOperation({ summary: 'Registrar si una recomendación tuvo éxito (JWT o API Key)' })
   updateRecomendacion(
     @Param('id') id: string,
     @Body() dto: UpdateRecomendacionDto,
