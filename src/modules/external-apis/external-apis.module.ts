@@ -8,10 +8,6 @@ import { DeudaHistoricaEntidad } from './entities/deuda-historica-entidad.entity
 import { DeudaHistoricaPeriodo } from './entities/deuda-historica-periodo.entity';
 import { DeudaPeriodo } from './entities/deuda-periodo.entity';
 import { Persona } from './entities/persona.entity';
-import { DeudaActual } from './entities/deuda-actual.entity';
-import { Entidad } from './entities/entidad.entity';
-import { HistorialCrediticio } from './entities/historial-crediticio.entity';
-import { Persona } from './entities/persona.entity';
 import { VerazService } from './veraz/veraz.service';
 
 @Module({
@@ -21,7 +17,6 @@ import { VerazService } from './veraz/veraz.service';
       maxRedirects: 3,
     }),
     TypeOrmModule.forFeature([
-      Entidad, Persona, DeudaActual, HistorialCrediticio,
       Persona, DeudaPeriodo, DeudaEntidad,
       DeudaHistoricaPeriodo, DeudaHistoricaEntidad,
       ChequeRechazado,
@@ -30,4 +25,4 @@ import { VerazService } from './veraz/veraz.service';
   providers: [BcraService, VerazService],
   exports: [BcraService, VerazService],
 })
-export class ExternalApisModule {}
+export class ExternalApisModule { }

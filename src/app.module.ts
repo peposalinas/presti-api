@@ -10,6 +10,7 @@ import { ExternalApisModule } from './modules/external-apis/external-apis.module
 import { MotorReglasModule } from './modules/motor-reglas/motor-reglas.module';
 import { ProductosModule } from './modules/productos/productos.module';
 import { UsuariosModule } from './modules/usuarios/usuarios.module';
+import { ChatModule } from './modules/chat/chat.module';
 
 @Module({
   imports: [
@@ -27,6 +28,8 @@ import { UsuariosModule } from './modules/usuarios/usuarios.module';
     MotorReglasModule,
     // APIs externas
     ExternalApisModule,
+    // Chat con IA
+    ChatModule,
   ],
   providers: [
     // Guard JWT aplicado globalmente — las rutas públicas usan @Public()
