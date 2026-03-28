@@ -1,4 +1,4 @@
-import { IsString, MaxLength, IsOptional, IsEnum } from 'class-validator';
+import { IsEmail, IsOptional, IsString, MaxLength } from 'class-validator';
 import { Suscripcion } from '../enums/suscripcion.enum';
 
 export class CreateClienteDto {
@@ -6,7 +6,12 @@ export class CreateClienteDto {
   @MaxLength(100)
   nombre: string;
 
+  @IsEmail()
+  email: string;
+
+  @IsString()
+  password: string;
+
   @IsOptional()
-  @IsEnum(Suscripcion)
   suscripcion?: Suscripcion;
 }

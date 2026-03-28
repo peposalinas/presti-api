@@ -22,6 +22,10 @@ export class ClientesService {
     return cliente;
   }
 
+  findByEmail(email: string): Promise<Cliente | null> {
+    return this.clienteRepository.findOne({ where: { email } });
+  }
+
   create(dto: CreateClienteDto): Promise<Cliente> {
     const cliente = this.clienteRepository.create(dto);
     return this.clienteRepository.save(cliente);
