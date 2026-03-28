@@ -1,5 +1,5 @@
-import { IsString, MaxLength, IsOptional, IsEnum } from 'class-validator';
-import { Suscripcion } from '../enums/suscripcion.enum';
+import { IsEnum, IsOptional, IsString, MaxLength } from 'class-validator';
+import { ModoExceso } from '../../suscripciones/enums/modo-exceso.enum';
 
 export class UpdateClienteDto {
   @IsOptional()
@@ -8,6 +8,6 @@ export class UpdateClienteDto {
   nombre?: string;
 
   @IsOptional()
-  @IsEnum(Suscripcion)
-  suscripcion?: Suscripcion;
+  @IsEnum(ModoExceso)
+  modoExceso?: ModoExceso;
 }

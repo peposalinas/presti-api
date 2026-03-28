@@ -14,6 +14,8 @@ import { Recomendacion } from '../modules/motor-reglas/entities/recomendacion.en
 import { Regla } from '../modules/motor-reglas/entities/regla.entity';
 import { TipoProducto } from '../modules/productos/entities/tipo-producto.entity';
 import { Producto } from '../modules/productos/entities/producto.entity';
+import { ClienteSuscripcion } from '../modules/suscripciones/entities/cliente-suscripcion.entity';
+import { RegistroUso } from '../modules/suscripciones/entities/registro-uso.entity';
 import { Usuario } from '../modules/usuarios/entities/usuario.entity';
 
 // Fuerza resolución DNS en IPv4 (evita ENETUNREACH en hosts con IPv6)
@@ -35,6 +37,7 @@ export const dataSourceOptions: DataSourceOptions = {
     Usuario,
     TipoProducto, Producto,
     Regla, Recomendacion,
+    ClienteSuscripcion, RegistroUso,
     Persona, DeudaPeriodo, DeudaEntidad,
     DeudaHistoricaPeriodo, DeudaHistoricaEntidad, ChequeRechazado,
   ],

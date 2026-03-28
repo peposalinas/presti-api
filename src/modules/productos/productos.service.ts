@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { SuscripcionesService } from '../suscripciones/suscripciones.service';
 import { CreateProductoDto } from './dto/create-producto.dto';
 import { CreateTipoProductoDto } from './dto/create-tipo-producto.dto';
 import { UpdateProductoDto } from './dto/update-producto.dto';
@@ -15,6 +16,7 @@ export class ProductosService {
     private readonly tipoProductoRepository: Repository<TipoProducto>,
     @InjectRepository(Producto)
     private readonly productoRepository: Repository<Producto>,
+    private readonly suscripcionesService: SuscripcionesService,
   ) {}
 
   // ── TipoProducto ─────────────────────────────────────────────────────────
@@ -31,7 +33,10 @@ export class ProductosService {
     return tipo;
   }
 
-  createTipo(dto: CreateTipoProductoDto, clienteId: string): Promise<TipoProducto> {
+  async createTipo(dto: CreateTipoProductoDto, clienteId: string): Promise<TipoProducto> {
+    const count = await this.tipoProductoRepository.count({ where: { clienteId } });
+    await this.suscripcionesService.verificarLimite(clienteId, 'maxTiposProducto', count);
+
     const tipo = this.tipoProductoRepository.create({ ...dto, clienteId });
     return this.tipoProductoRepository.save(tipo);
   }
@@ -65,7 +70,10 @@ export class ProductosService {
     return producto;
   }
 
-  create(dto: CreateProductoDto, clienteId: string): Promise<Producto> {
+  async create(dto: CreateProductoDto, clienteId: string): Promise<Producto> {
+    const count = await this.productoRepository.count({ where: { clienteId } });
+    await this.suscripcionesService.verificarLimite(clienteId, 'maxProductos', count);
+
     const producto = this.productoRepository.create({ ...dto, clienteId });
     return this.productoRepository.save(producto);
   }

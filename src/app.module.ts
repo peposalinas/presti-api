@@ -9,6 +9,7 @@ import { ClientesModule } from './modules/clientes/clientes.module';
 import { ExternalApisModule } from './modules/external-apis/external-apis.module';
 import { MotorReglasModule } from './modules/motor-reglas/motor-reglas.module';
 import { ProductosModule } from './modules/productos/productos.module';
+import { SuscripcionesModule } from './modules/suscripciones/suscripciones.module';
 import { UsuariosModule } from './modules/usuarios/usuarios.module';
 import { ChatModule } from './modules/chat/chat.module';
 
@@ -26,6 +27,7 @@ import { ChatModule } from './modules/chat/chat.module';
     UsuariosModule,
     ProductosModule,
     MotorReglasModule,
+    SuscripcionesModule,
     // APIs externas
     ExternalApisModule,
     // Chat con IA

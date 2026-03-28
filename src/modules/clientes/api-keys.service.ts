@@ -6,6 +6,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { randomUUID } from 'crypto';
 import { Repository } from 'typeorm';
+import { SuscripcionesService } from '../suscripciones/suscripciones.service';
 import { ApiKey } from './entities/api-key.entity';
 
 @Injectable()
@@ -13,9 +14,15 @@ export class ApiKeysService {
   constructor(
     @InjectRepository(ApiKey)
     private readonly apiKeyRepository: Repository<ApiKey>,
+    private readonly suscripcionesService: SuscripcionesService,
   ) {}
 
   async create(clienteId: string): Promise<ApiKey> {
+    const count = await this.apiKeyRepository.count({
+      where: { clienteId, activo: true },
+    });
+    await this.suscripcionesService.verificarLimite(clienteId, 'maxApiKeys', count);
+
     const apiKey = this.apiKeyRepository.create({
       api_key: randomUUID(),
       clienteId,

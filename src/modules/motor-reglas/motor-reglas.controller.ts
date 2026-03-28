@@ -8,11 +8,13 @@ import {
   Param,
   Patch,
   Post,
+  Query,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { CurrentCliente } from '../auth/decorators/current-cliente.decorator';
 import { CreateRecomendacionDto } from './dto/create-recomendacion.dto';
 import { CreateReglaDto } from './dto/create-regla.dto';
+import { UpdateRecomendacionDto } from './dto/update-recomendacion.dto';
 import { UpdateReglaDto } from './dto/update-regla.dto';
 import { MotorReglasService } from './motor-reglas.service';
 
@@ -39,7 +41,7 @@ export class MotorReglasController {
 
   @ApiTags('Reglas')
   @Post('reglas')
-  @ApiOperation({ summary: 'Crear una regla' })
+  @ApiOperation({ summary: 'Crear una regla (a nivel producto o tipo de producto)' })
   createRegla(
     @Body() dto: CreateReglaDto,
     @CurrentCliente() clienteId: string,
@@ -70,9 +72,21 @@ export class MotorReglasController {
 
   @ApiTags('Recomendaciones')
   @Get('recomendaciones')
-  @ApiOperation({ summary: 'Listar recomendaciones' })
-  findAllRecomendaciones(@CurrentCliente() clienteId: string) {
-    return this.motorReglasService.findAllRecomendaciones(clienteId);
+  @ApiOperation({ summary: 'Listar recomendaciones con filtros opcionales' })
+  @ApiQuery({ name: 'usuarioCuil', required: false })
+  @ApiQuery({ name: 'productoId', required: false })
+  @ApiQuery({ name: 'tipoProductoId', required: false })
+  findAllRecomendaciones(
+    @CurrentCliente() clienteId: string,
+    @Query('usuarioCuil') usuarioCuil?: string,
+    @Query('productoId') productoId?: string,
+    @Query('tipoProductoId') tipoProductoId?: string,
+  ) {
+    return this.motorReglasService.findAllRecomendaciones(clienteId, {
+      usuarioCuil,
+      productoId,
+      tipoProductoId,
+    });
   }
 
   @ApiTags('Recomendaciones')
@@ -87,11 +101,24 @@ export class MotorReglasController {
 
   @ApiTags('Recomendaciones')
   @Post('recomendaciones')
-  @ApiOperation({ summary: 'Crear una recomendación' })
+  @ApiOperation({
+    summary: 'Evaluar reglas para un usuario y generar recomendaciones de productos',
+  })
   createRecomendacion(
     @Body() dto: CreateRecomendacionDto,
     @CurrentCliente() clienteId: string,
   ) {
     return this.motorReglasService.createRecomendacion(dto, clienteId);
+  }
+
+  @ApiTags('Recomendaciones')
+  @Patch('recomendaciones/:id')
+  @ApiOperation({ summary: 'Registrar si una recomendación tuvo éxito' })
+  updateRecomendacion(
+    @Param('id') id: string,
+    @Body() dto: UpdateRecomendacionDto,
+    @CurrentCliente() clienteId: string,
+  ) {
+    return this.motorReglasService.updateRecomendacion(id, dto, clienteId);
   }
 }

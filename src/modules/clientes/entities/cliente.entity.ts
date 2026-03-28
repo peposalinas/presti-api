@@ -1,5 +1,6 @@
 import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
-import { Suscripcion } from '../enums/suscripcion.enum';
+import { ClienteSuscripcion } from '../../suscripciones/entities/cliente-suscripcion.entity';
+import { ModoExceso } from '../../suscripciones/enums/modo-exceso.enum';
 import { ApiKey } from './api-key.entity';
 
 @Entity('clientes')
@@ -16,11 +17,12 @@ export class Cliente {
   @Column({ type: 'varchar' })
   password: string;
 
-  // Se usa varchar nullable hasta que se definan los valores del enum de suscripción.
-  // Al agregar valores a Suscripcion, generar migración para convertir a tipo enum.
-  @Column({ type: 'varchar', nullable: true })
-  suscripcion: Suscripcion | null;
+  @Column({ name: 'modo_exceso', type: 'enum', enum: ModoExceso, default: ModoExceso.RECHAZAR })
+  modoExceso: ModoExceso;
 
   @OneToMany(() => ApiKey, (apiKey) => apiKey.cliente)
   apiKeys: ApiKey[];
+
+  @OneToMany(() => ClienteSuscripcion, (s) => s.cliente)
+  suscripciones: ClienteSuscripcion[];
 }

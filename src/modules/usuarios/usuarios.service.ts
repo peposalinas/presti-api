@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { SuscripcionesService } from '../suscripciones/suscripciones.service';
 import { CreateUsuarioDto } from './dto/create-usuario.dto';
 import { UpdateUsuarioDto } from './dto/update-usuario.dto';
 import { Usuario } from './entities/usuario.entity';
@@ -10,6 +11,7 @@ export class UsuariosService {
   constructor(
     @InjectRepository(Usuario)
     private readonly usuarioRepository: Repository<Usuario>,
+    private readonly suscripcionesService: SuscripcionesService,
   ) {}
 
   findAll(clienteId: string): Promise<Usuario[]> {
@@ -24,7 +26,10 @@ export class UsuariosService {
     return usuario;
   }
 
-  create(dto: CreateUsuarioDto, clienteId: string): Promise<Usuario> {
+  async create(dto: CreateUsuarioDto, clienteId: string): Promise<Usuario> {
+    const count = await this.usuarioRepository.count({ where: { clienteId } });
+    await this.suscripcionesService.verificarLimite(clienteId, 'maxUsuarios', count);
+
     const usuario = this.usuarioRepository.create({ ...dto, clienteId });
     return this.usuarioRepository.save(usuario);
   }

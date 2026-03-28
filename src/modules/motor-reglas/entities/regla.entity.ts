@@ -1,4 +1,5 @@
 import {
+  Check,
   Column,
   Entity,
   JoinColumn,
@@ -7,10 +8,13 @@ import {
 } from 'typeorm';
 import { Cliente } from '../../clientes/entities/cliente.entity';
 import { Producto } from '../../productos/entities/producto.entity';
+import { TipoProducto } from '../../productos/entities/tipo-producto.entity';
 import { Operador } from '../enums/operador.enum';
 import { Parametro } from '../enums/parametro.enum';
 import { TipoValor } from '../enums/tipo-valor.enum';
 
+@Check(`("producto_id" IS NOT NULL AND "tipo_producto_id" IS NULL)
+     OR ("producto_id" IS NULL AND "tipo_producto_id" IS NOT NULL)`)
 @Entity('reglas')
 export class Regla {
   @PrimaryGeneratedColumn('uuid')
@@ -31,12 +35,19 @@ export class Regla {
   @Column({ type: 'integer' })
   prioridad: number;
 
-  @Column({ name: 'producto_id' })
-  productoId: string;
+  @Column({ name: 'producto_id', nullable: true })
+  productoId: string | null;
 
-  @ManyToOne(() => Producto)
+  @ManyToOne(() => Producto, { nullable: true })
   @JoinColumn({ name: 'producto_id' })
-  producto: Producto;
+  producto: Producto | null;
+
+  @Column({ name: 'tipo_producto_id', nullable: true })
+  tipoProductoId: string | null;
+
+  @ManyToOne(() => TipoProducto, { nullable: true })
+  @JoinColumn({ name: 'tipo_producto_id' })
+  tipoProducto: TipoProducto | null;
 
   @Column({ name: 'cliente_id' })
   clienteId: string;

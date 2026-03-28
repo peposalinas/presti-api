@@ -1,5 +1,5 @@
-import { IsEmail, IsOptional, IsString, MaxLength } from 'class-validator';
-import { Suscripcion } from '../enums/suscripcion.enum';
+import { IsEmail, IsEnum, IsOptional, IsString, MaxLength } from 'class-validator';
+import { ModoExceso } from '../../suscripciones/enums/modo-exceso.enum';
 
 export class CreateClienteDto {
   @IsString()
@@ -13,5 +13,6 @@ export class CreateClienteDto {
   password: string;
 
   @IsOptional()
-  suscripcion?: Suscripcion;
+  @IsEnum(ModoExceso)
+  modoExceso?: ModoExceso;
 }

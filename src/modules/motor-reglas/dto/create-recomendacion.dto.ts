@@ -1,15 +1,16 @@
-import { IsBoolean, IsDateString, IsString } from 'class-validator';
+import { IsBoolean, IsDateString, IsString, Length } from 'class-validator';
 
 export class CreateRecomendacionDto {
+  @IsString()
+  @Length(11, 11)
+  cuil: string;
+
+  @IsString()
+  nombre: string;
+
   @IsDateString()
-  timestamp: string;
+  fechaNacimiento: string;
 
   @IsBoolean()
-  exito: boolean;
-
-  @IsString()
-  productoId: string;
-
-  @IsString()
-  usuarioId: string;
+  update: boolean;
 }
