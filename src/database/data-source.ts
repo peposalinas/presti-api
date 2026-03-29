@@ -10,6 +10,8 @@ import { DeudaHistoricaEntidad } from "../modules/external-apis/entities/deuda-h
 import { DeudaHistoricaPeriodo } from "../modules/external-apis/entities/deuda-historica-periodo.entity";
 import { DeudaPeriodo } from "../modules/external-apis/entities/deuda-periodo.entity";
 import { Persona } from "../modules/external-apis/entities/persona.entity";
+import { CambioSituacion } from "../modules/cartera/entities/cambio-situacion.entity";
+import { ConsultaUsuario } from "../modules/cartera/entities/consulta-usuario.entity";
 import { Recomendacion } from "../modules/motor-reglas/entities/recomendacion.entity";
 import { PoliticaCrediticia } from "../modules/politica-crediticia/entities/politica-crediticia.entity";
 import { Producto } from "../modules/productos/entities/producto.entity";
@@ -38,6 +40,8 @@ export const dataSourceOptions: DataSourceOptions = {
     Producto,
     PoliticaCrediticia,
     Recomendacion,
+    ConsultaUsuario,
+    CambioSituacion,
     ClienteSuscripcion,
     RegistroUso,
     Persona,

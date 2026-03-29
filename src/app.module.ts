@@ -12,6 +12,7 @@ import { ProductosModule } from './modules/productos/productos.module';
 import { SuscripcionesModule } from './modules/suscripciones/suscripciones.module';
 import { UsuariosModule } from './modules/usuarios/usuarios.module';
 import { ChatModule } from './modules/chat/chat.module';
+import { CarteraModule } from './modules/cartera/cartera.module';
 import { PoliticaCrediticiaModule } from './modules/politica-crediticia/politica-crediticia.module';
 
 @Module({
@@ -30,6 +31,7 @@ import { PoliticaCrediticiaModule } from './modules/politica-crediticia/politica
     MotorReglasModule,
     SuscripcionesModule,
     PoliticaCrediticiaModule,
+    CarteraModule,
     // APIs externas
     ExternalApisModule,
     // Chat con IA

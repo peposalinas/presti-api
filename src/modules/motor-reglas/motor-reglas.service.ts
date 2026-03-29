@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { MoreThan, Repository } from "typeorm";
+import { CarteraService } from "../cartera/cartera.service";
 import { BcraService } from "../external-apis/bcra/bcra.service";
 import { PoliticaCrediticiaService } from "../politica-crediticia/politica-crediticia.service";
 import { Producto } from "../productos/entities/producto.entity";
@@ -20,6 +21,7 @@ export class MotorReglasService {
     @InjectRepository(Usuario)
     private readonly usuarioRepository: Repository<Usuario>,
     private readonly bcraService: BcraService,
+    private readonly carteraService: CarteraService,
     private readonly politicaCrediticiaService: PoliticaCrediticiaService,
     private readonly groqService: GroqRecomendacionesService,
   ) {}
@@ -72,6 +74,9 @@ export class MotorReglasService {
   ): Promise<void> {
     // ── Paso 1: Consultar BCRA y persistir datos públicos ───────────────────
     const bcraData = await this.bcraService.fetchAndPersist(dto.cuil);
+
+    // ── Paso 1.5: Registrar consulta en cartera privada ──────────────────────
+    await this.carteraService.registrarConsulta(clienteId, dto.cuil, bcraData);
 
     // ── Paso 2: Upsert usuario ───────────────────────────────────────────────
     const usuarioExistente = await this.usuarioRepository.findOne({

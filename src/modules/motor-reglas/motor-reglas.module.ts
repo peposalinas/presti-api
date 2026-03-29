@@ -1,5 +1,6 @@
 import { Module } from "@nestjs/common";
 import { TypeOrmModule } from "@nestjs/typeorm";
+import { CarteraModule } from "../cartera/cartera.module";
 import { ClientesModule } from "../clientes/clientes.module";
 import { ExternalApisModule } from "../external-apis/external-apis.module";
 import { PoliticaCrediticiaModule } from "../politica-crediticia/politica-crediticia.module";
@@ -14,6 +15,7 @@ import { MotorReglasService } from "./motor-reglas.service";
 @Module({
   imports: [
     TypeOrmModule.forFeature([Recomendacion, Producto, Usuario]),
+    CarteraModule,
     ClientesModule,
     ExternalApisModule,
     PoliticaCrediticiaModule,
