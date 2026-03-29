@@ -498,9 +498,12 @@ async function asegurarUsuarios(
   };
 
   for (const cuil of cuils) {
-    const existente = await usuarioRepository.findOne({ where: { cuil } });
+    const existente = await usuarioRepository.findOne({
+      where: { cuil },
+      relations: ["cliente"],
+    });
 
-    if (existente && existente.clienteId !== clienteId) {
+    if (existente && existente.cliente?.id !== clienteId) {
       omitidosPorOtroCliente += 1;
       continue;
     }
@@ -510,15 +513,13 @@ async function asegurarUsuarios(
       personaRepository,
       bcraBaseUrl,
     );
-    const fechaNacimiento = generarFechaNacimientoRandom(cuil);
     origenNombres[origen] += 1;
 
     if (!existente) {
       const usuario = usuarioRepository.create({
         cuil,
         nombre,
-        fechaNacimiento,
-        clienteId,
+        cliente: { id: clienteId },
       });
       await usuarioRepository.save(usuario);
       creados += 1;
@@ -526,7 +527,6 @@ async function asegurarUsuarios(
     }
 
     existente.nombre = nombre;
-    existente.fechaNacimiento = fechaNacimiento;
     await usuarioRepository.save(existente);
     actualizados += 1;
   }

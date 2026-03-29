@@ -53,7 +53,9 @@ export class UsuariosService {
   ) {}
 
   findAll(clienteId: string): Promise<Usuario[]> {
-    return this.usuarioRepository.find({ where: { cliente: { id: clienteId } } });
+    return this.usuarioRepository.find({
+      where: { cliente: { id: clienteId } },
+    });
   }
 
   async findOne(cuil: string, clienteId: string): Promise<Usuario> {
@@ -65,16 +67,19 @@ export class UsuariosService {
   }
 
   async create(dto: CreateUsuarioDto, clienteId: string): Promise<Usuario> {
-    const count = await this.usuarioRepository.count({ where: { clienteId } });
+    const count = await this.usuarioRepository.count({
+      where: { cliente: { id: clienteId } },
+    });
     await this.suscripcionesService.verificarLimite(
       clienteId,
       "maxUsuarios",
       count,
     );
-    const count = await this.usuarioRepository.count({ where: { cliente: { id: clienteId } } });
-    await this.suscripcionesService.verificarLimite(clienteId, 'maxUsuarios', count);
 
-    const usuario = this.usuarioRepository.create({ ...dto, cliente: { id: clienteId } });
+    const usuario = this.usuarioRepository.create({
+      ...dto,
+      cliente: { id: clienteId },
+    });
     return this.usuarioRepository.save(usuario);
   }
 
@@ -97,7 +102,7 @@ export class UsuariosService {
     clienteId: string,
   ): Promise<RefreshBcraUsuariosResponse> {
     const usuarios = await this.usuarioRepository.find({
-      where: { clienteId },
+      where: { cliente: { id: clienteId } },
     });
 
     const resultados: ResultadoRefreshUsuario[] = [];
