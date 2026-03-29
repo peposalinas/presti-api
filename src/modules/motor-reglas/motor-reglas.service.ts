@@ -29,10 +29,12 @@ export class MotorReglasService {
   async findAllRecomendaciones(
     clienteId: string,
     desde: string,
+    cuil: string,
   ): Promise<{ id: string; producto: Producto }[]> {
     const recomendaciones = await this.recomendacionRepository.find({
       where: {
         cliente: { id: clienteId },
+        usuario: { cuil },
         timestamp: MoreThan(new Date(desde)),
       },
       relations: ["producto"],
