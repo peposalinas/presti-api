@@ -30,18 +30,18 @@ export class MotorReglasService {
     clienteId: string,
     desde: string,
     cuil: string,
-  ): Promise<{ id: string; producto: Producto }[]> {
+  ): Promise<{ id: string; cuil: string; producto: Producto }[]> {
     const recomendaciones = await this.recomendacionRepository.find({
       where: {
         cliente: { id: clienteId },
         usuario: { cuil },
         timestamp: MoreThan(new Date(desde)),
       },
-      relations: ["producto"],
+      relations: ["producto", "usuario"],
       order: { timestamp: "DESC" },
     });
 
-    return recomendaciones.map((r) => ({ id: r.id, producto: r.producto }));
+    return recomendaciones.map((r) => ({ id: r.id, cuil: r.usuario.cuil, producto: r.producto }));
   }
 
   async findOneRecomendacion(
