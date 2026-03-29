@@ -1,7 +1,6 @@
 import {
   Body,
   Controller,
-  Delete,
   Get,
   HttpCode,
   HttpStatus,
@@ -24,10 +23,8 @@ import { Public } from "../auth/decorators/public.decorator";
 import { JwtOrApiKeyAuthGuard } from "../auth/guards/jwt-or-api-key-auth.guard";
 import { ConsultaLimitGuard } from "../suscripciones/guards/consulta-limit.guard";
 import { CreateRecomendacionDto } from "./dto/create-recomendacion.dto";
-import { CreateReglaDto } from "./dto/create-regla.dto";
 import { ObtenerRecomendacionesDto } from "./dto/obtener-recomendaciones.dto";
 import { UpdateRecomendacionDto } from "./dto/update-recomendacion.dto";
-import { UpdateReglaDto } from "./dto/update-regla.dto";
 import { GroqRecomendacionesService } from "./groq-recomendaciones.service";
 import { MotorReglasService } from "./motor-reglas.service";
 
@@ -38,51 +35,6 @@ export class MotorReglasController {
     private readonly motorReglasService: MotorReglasService,
     private readonly groqRecomendacionesService: GroqRecomendacionesService,
   ) {}
-
-  // ── Reglas ────────────────────────────────────────────────────────────────
-
-  @ApiTags("Reglas")
-  @Get("reglas")
-  @ApiOperation({ summary: "Listar reglas ordenadas por prioridad" })
-  findAllReglas(@CurrentCliente() clienteId: string) {
-    return this.motorReglasService.findAllReglas(clienteId);
-  }
-
-  @ApiTags("Reglas")
-  @Get("reglas/:id")
-  @ApiOperation({ summary: "Obtener una regla" })
-  findOneRegla(@Param("id") id: string, @CurrentCliente() clienteId: string) {
-    return this.motorReglasService.findOneRegla(id, clienteId);
-  }
-
-  @ApiTags("Reglas")
-  @Post("reglas")
-  @ApiOperation({ summary: "Crear una regla para un producto" })
-  createRegla(
-    @Body() dto: CreateReglaDto,
-    @CurrentCliente() clienteId: string,
-  ) {
-    return this.motorReglasService.createRegla(dto, clienteId);
-  }
-
-  @ApiTags("Reglas")
-  @Patch("reglas/:id")
-  @ApiOperation({ summary: "Actualizar una regla" })
-  updateRegla(
-    @Param("id") id: string,
-    @Body() dto: UpdateReglaDto,
-    @CurrentCliente() clienteId: string,
-  ) {
-    return this.motorReglasService.updateRegla(id, dto, clienteId);
-  }
-
-  @ApiTags("Reglas")
-  @Delete("reglas/:id")
-  @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: "Eliminar una regla" })
-  removeRegla(@Param("id") id: string, @CurrentCliente() clienteId: string) {
-    return this.motorReglasService.removeRegla(id, clienteId);
-  }
 
   // ── Recomendaciones ───────────────────────────────────────────────────────
 

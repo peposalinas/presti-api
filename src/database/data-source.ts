@@ -11,7 +11,7 @@ import { DeudaHistoricaPeriodo } from "../modules/external-apis/entities/deuda-h
 import { DeudaPeriodo } from "../modules/external-apis/entities/deuda-periodo.entity";
 import { Persona } from "../modules/external-apis/entities/persona.entity";
 import { Recomendacion } from "../modules/motor-reglas/entities/recomendacion.entity";
-import { Regla } from "../modules/motor-reglas/entities/regla.entity";
+import { PoliticaCrediticia } from "../modules/politica-crediticia/entities/politica-crediticia.entity";
 import { Producto } from "../modules/productos/entities/producto.entity";
 import { ClienteSuscripcion } from "../modules/suscripciones/entities/cliente-suscripcion.entity";
 import { RegistroUso } from "../modules/suscripciones/entities/registro-uso.entity";
@@ -36,7 +36,7 @@ export const dataSourceOptions: DataSourceOptions = {
     ApiKey,
     Usuario,
     Producto,
-    Regla,
+    PoliticaCrediticia,
     Recomendacion,
     ClienteSuscripcion,
     RegistroUso,

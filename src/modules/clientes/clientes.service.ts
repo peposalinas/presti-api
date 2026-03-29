@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { PoliticaCrediticiaService } from '../politica-crediticia/politica-crediticia.service';
 import { SuscripcionesService } from '../suscripciones/suscripciones.service';
 import { TipoSuscripcion } from '../suscripciones/enums/tipo-suscripcion.enum';
 import { CreateClienteDto } from './dto/create-cliente.dto';
@@ -13,6 +14,7 @@ export class ClientesService {
     @InjectRepository(Cliente)
     private readonly clienteRepository: Repository<Cliente>,
     private readonly suscripcionesService: SuscripcionesService,
+    private readonly politicaCrediticiaService: PoliticaCrediticiaService,
   ) {}
 
   findAll(): Promise<Cliente[]> {
@@ -40,6 +42,8 @@ export class ClientesService {
       startTimestamp: ahora.toISOString(),
       endTimestamp: new Date(ahora.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString(),
     });
+
+    await this.politicaCrediticiaService.createDefault(cliente.id);
 
     return cliente;
   }

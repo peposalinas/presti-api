@@ -2,21 +2,17 @@ import { Injectable, NotFoundException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { MoreThan, Repository } from "typeorm";
 import { BcraService } from "../external-apis/bcra/bcra.service";
+import { PoliticaCrediticiaService } from "../politica-crediticia/politica-crediticia.service";
 import { Producto } from "../productos/entities/producto.entity";
 import { Usuario } from "../usuarios/entities/usuario.entity";
 import { CreateRecomendacionDto } from "./dto/create-recomendacion.dto";
-import { CreateReglaDto } from "./dto/create-regla.dto";
 import { UpdateRecomendacionDto } from "./dto/update-recomendacion.dto";
-import { UpdateReglaDto } from "./dto/update-regla.dto";
 import { Recomendacion } from "./entities/recomendacion.entity";
-import { Regla } from "./entities/regla.entity";
 import { GroqRecomendacionesService } from "./groq-recomendaciones.service";
 
 @Injectable()
 export class MotorReglasService {
   constructor(
-    @InjectRepository(Regla)
-    private readonly reglaRepository: Repository<Regla>,
     @InjectRepository(Recomendacion)
     private readonly recomendacionRepository: Repository<Recomendacion>,
     @InjectRepository(Producto)
@@ -24,45 +20,9 @@ export class MotorReglasService {
     @InjectRepository(Usuario)
     private readonly usuarioRepository: Repository<Usuario>,
     private readonly bcraService: BcraService,
+    private readonly politicaCrediticiaService: PoliticaCrediticiaService,
     private readonly groqService: GroqRecomendacionesService,
   ) {}
-
-  // ── Reglas ────────────────────────────────────────────────────────────────
-
-  findAllReglas(clienteId: string): Promise<Regla[]> {
-    return this.reglaRepository.find({
-      where: { clienteId },
-      order: { prioridad: "ASC" },
-    });
-  }
-
-  async findOneRegla(id: string, clienteId: string): Promise<Regla> {
-    const regla = await this.reglaRepository.findOne({
-      where: { id, clienteId },
-    });
-    if (!regla) throw new NotFoundException(`Regla ${id} no encontrada`);
-    return regla;
-  }
-
-  createRegla(dto: CreateReglaDto, clienteId: string): Promise<Regla> {
-    const regla = this.reglaRepository.create({ ...dto, clienteId });
-    return this.reglaRepository.save(regla);
-  }
-
-  async updateRegla(
-    id: string,
-    dto: UpdateReglaDto,
-    clienteId: string,
-  ): Promise<Regla> {
-    const regla = await this.findOneRegla(id, clienteId);
-    Object.assign(regla, dto);
-    return this.reglaRepository.save(regla);
-  }
-
-  async removeRegla(id: string, clienteId: string): Promise<void> {
-    const regla = await this.findOneRegla(id, clienteId);
-    await this.reglaRepository.remove(regla);
-  }
 
   // ── Recomendaciones ───────────────────────────────────────────────────────
 
@@ -127,17 +87,21 @@ export class MotorReglasService {
       );
     }
 
-    // ── Paso 3: Productos activos del cliente ────────────────────────────────
+    // ── Paso 3: Evaluar política crediticia ──────────────────────────────────
+    const politica = await this.politicaCrediticiaService.findByCliente(clienteId);
+    if (!this.politicaCrediticiaService.evaluarPerfil(politica, bcraData)) return;
+
+    // ── Paso 4: Productos activos del cliente ────────────────────────────────
     const productos = await this.productoRepository.find({
       where: { clienteId, activo: true },
     });
 
     if (productos.length === 0) return;
 
-    // ── Paso 4: IA recomienda productos en base a perfil BCRA ────────────────
+    // ── Paso 5: IA recomienda productos en base a perfil BCRA ────────────────
     const productoIds = await this.groqService.recomendarPorBcra(bcraData, productos);
 
-    // ── Paso 5: Crear recomendaciones ────────────────────────────────────────
+    // ── Paso 6: Crear recomendaciones ────────────────────────────────────────
     const ahora = new Date();
     for (const productoId of productoIds) {
       await this.recomendacionRepository.save(

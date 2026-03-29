@@ -14,10 +14,7 @@ import { ApiKey } from "../modules/clientes/entities/api-key.entity";
 import { Cliente } from "../modules/clientes/entities/cliente.entity";
 import { BcraDeudorDto } from "../modules/external-apis/bcra/dto/bcra-deudor.dto";
 import { Persona } from "../modules/external-apis/entities/persona.entity";
-import { Regla } from "../modules/motor-reglas/entities/regla.entity";
-import { Operador } from "../modules/motor-reglas/enums/operador.enum";
-import { Parametro } from "../modules/motor-reglas/enums/parametro.enum";
-import { TipoValor } from "../modules/motor-reglas/enums/tipo-valor.enum";
+import { PoliticaCrediticia } from "../modules/politica-crediticia/entities/politica-crediticia.entity";
 import { TipoProducto } from "../modules/productos/enums/tipo-producto.enum";
 import { Producto } from "../modules/productos/entities/producto.entity";
 import { ClienteSuscripcion } from "../modules/suscripciones/entities/cliente-suscripcion.entity";
@@ -42,14 +39,6 @@ interface ProductoSeed {
   limiteMontoTotalMax: number | null;
   interesMin: number | null;
   interesMax: number | null;
-}
-
-interface ReglaSeed {
-  parametro: Parametro;
-  operador: Operador;
-  valor: string;
-  tipoValor: TipoValor;
-  prioridad: number;
 }
 
 const DEFAULT_CUILS = [
@@ -120,57 +109,6 @@ const PRODUCTOS_SEED: ProductoSeed[] = [
     interesMax: 140,
   },
 ];
-
-const REGLAS_SEED_POR_TIPO: Record<TipoProducto, ReglaSeed[]> = {
-  [TipoProducto.PRESTAMO]: [
-    {
-      parametro: Parametro.EDAD,
-      operador: Operador.MAYOR_O_IGUAL,
-      valor: "25",
-      tipoValor: TipoValor.NUMERO,
-      prioridad: 1,
-    },
-    {
-      parametro: Parametro.SITUACION_BCRA,
-      operador: Operador.MENOR_O_IGUAL,
-      valor: "2",
-      tipoValor: TipoValor.NUMERO,
-      prioridad: 2,
-    },
-  ],
-  [TipoProducto.MICROPRESTAMO]: [
-    {
-      parametro: Parametro.EDAD,
-      operador: Operador.MAYOR_O_IGUAL,
-      valor: "18",
-      tipoValor: TipoValor.NUMERO,
-      prioridad: 1,
-    },
-    {
-      parametro: Parametro.SITUACION_BCRA,
-      operador: Operador.MENOR_O_IGUAL,
-      valor: "3",
-      tipoValor: TipoValor.NUMERO,
-      prioridad: 2,
-    },
-  ],
-  [TipoProducto.TARJETA_CREDITO]: [
-    {
-      parametro: Parametro.EDAD,
-      operador: Operador.MAYOR_O_IGUAL,
-      valor: "21",
-      tipoValor: TipoValor.NUMERO,
-      prioridad: 1,
-    },
-    {
-      parametro: Parametro.SITUACION_BCRA,
-      operador: Operador.MENOR_O_IGUAL,
-      valor: "2",
-      tipoValor: TipoValor.NUMERO,
-      prioridad: 2,
-    },
-  ],
-};
 
 function obtenerArgumento(nombre: string): string | undefined {
   const prefijo = `--${nombre}=`;
@@ -429,50 +367,18 @@ async function asegurarProductos(
   return { productosPorTipo, creados, actualizados };
 }
 
-async function asegurarReglas(
-  reglaRepository: Repository<Regla>,
+async function asegurarPoliticaCrediticia(
+  politicaRepository: Repository<PoliticaCrediticia>,
   clienteId: string,
-  productosPorTipo: Record<TipoProducto, Producto>,
-): Promise<{ creadas: number; actualizadas: number }> {
-  let creadas = 0;
-  let actualizadas = 0;
-
-  for (const tipo of Object.values(TipoProducto)) {
-    const producto = productosPorTipo[tipo];
-    const reglasSeed = REGLAS_SEED_POR_TIPO[tipo];
-
-    for (const reglaSeed of reglasSeed) {
-      const existente = await reglaRepository.findOne({
-        where: {
-          clienteId,
-          productoId: producto.id,
-          parametro: reglaSeed.parametro,
-          operador: reglaSeed.operador,
-          valor: reglaSeed.valor,
-          tipoValor: reglaSeed.tipoValor,
-        },
-      });
-
-      if (!existente) {
-        const nueva = reglaRepository.create({
-          ...reglaSeed,
-          clienteId,
-          productoId: producto.id,
-        });
-        await reglaRepository.save(nueva);
-        creadas += 1;
-        continue;
-      }
-
-      if (existente.prioridad !== reglaSeed.prioridad) {
-        existente.prioridad = reglaSeed.prioridad;
-        await reglaRepository.save(existente);
-        actualizadas += 1;
-      }
-    }
+): Promise<void> {
+  const existe = await politicaRepository.findOne({
+    where: { cliente: { id: clienteId } },
+  });
+  if (!existe) {
+    await politicaRepository.save(
+      politicaRepository.create({ cliente: { id: clienteId } }),
+    );
   }
-
-  return { creadas, actualizadas };
 }
 
 async function asegurarUsuarios(
@@ -558,7 +464,7 @@ async function main(): Promise<void> {
     const usuarioRepository = AppDataSource.getRepository(Usuario);
     const personaRepository = AppDataSource.getRepository(Persona);
     const productoRepository = AppDataSource.getRepository(Producto);
-    const reglaRepository = AppDataSource.getRepository(Regla);
+    const politicaRepository = AppDataSource.getRepository(PoliticaCrediticia);
     const suscripcionRepository =
       AppDataSource.getRepository(ClienteSuscripcion);
     const apiKeyRepository = AppDataSource.getRepository(ApiKey);
@@ -570,12 +476,8 @@ async function main(): Promise<void> {
     );
     const apiKey = await asegurarApiKeyActiva(apiKeyRepository, cliente.id);
 
+    await asegurarPoliticaCrediticia(politicaRepository, cliente.id);
     const productos = await asegurarProductos(productoRepository, cliente.id);
-    const reglas = await asegurarReglas(
-      reglaRepository,
-      cliente.id,
-      productos.productosPorTipo,
-    );
     const usuarios = await asegurarUsuarios(
       usuarioRepository,
       personaRepository,
@@ -596,9 +498,6 @@ async function main(): Promise<void> {
     console.log(`API Key activa: ${apiKey.api_key}`);
     console.log(
       `Productos -> creados: ${productos.creados}, actualizados: ${productos.actualizados}`,
-    );
-    console.log(
-      `Reglas -> creadas: ${reglas.creadas}, actualizadas: ${reglas.actualizadas}`,
     );
     console.log(
       `Usuarios -> creados: ${usuarios.creados}, actualizados: ${usuarios.actualizados}, omitidos por otro cliente: ${usuarios.omitidosPorOtroCliente}`,
