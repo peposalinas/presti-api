@@ -1,20 +1,22 @@
-import { HttpService } from "@nestjs/axios";
-import { HttpException, Injectable } from "@nestjs/common";
-import { ConfigService } from "@nestjs/config";
-import { InjectRepository } from "@nestjs/typeorm";
-import { In, Repository } from "typeorm";
-import { BaseHttpService } from "../base/base-http.service";
-import { ChequeRechazado } from "../entities/cheque-rechazado.entity";
-import { DeudaEntidad } from "../entities/deuda-entidad.entity";
-import { DeudaHistoricaEntidad } from "../entities/deuda-historica-entidad.entity";
-import { DeudaHistoricaPeriodo } from "../entities/deuda-historica-periodo.entity";
-import { DeudaPeriodo } from "../entities/deuda-periodo.entity";
-import { Persona } from "../entities/persona.entity";
+import { HttpException, Injectable } from '@nestjs/common';
+import { HttpService } from '@nestjs/axios';
+import { ConfigService } from '@nestjs/config';
+import { InjectRepository } from '@nestjs/typeorm';
+import { In, MoreThan, Repository } from 'typeorm';
+import { BaseHttpService } from '../base/base-http.service';
+import { ChequeRechazado } from '../entities/cheque-rechazado.entity';
+import { DeudaEntidad } from '../entities/deuda-entidad.entity';
+import { DeudaHistoricaEntidad } from '../entities/deuda-historica-entidad.entity';
+import { DeudaHistoricaPeriodo } from '../entities/deuda-historica-periodo.entity';
+import { DeudaPeriodo } from '../entities/deuda-periodo.entity';
+import { Persona } from '../entities/persona.entity';
 import {
   BcraDeudaHistoricaDto,
   BcraDeudorDto,
   BcraDeudorResultadoDto,
-} from "./dto/bcra-deudor.dto";
+} from './dto/bcra-deudor.dto';
+
+const TTL_HORAS = 24;
 
 export interface BcraCausal {
   causal: string;
@@ -84,7 +86,25 @@ export class BcraService extends BaseHttpService {
     );
   }
 
+  /**
+   * Consulta, persiste y retorna el perfil BCRA completo de un CUIL.
+   * Si los datos ya existen y tienen menos de TTL_HORAS horas, los devuelve
+   * directamente desde la DB sin llamar a BCRA.
+   */
   async fetchAndPersist(cuil: string): Promise<BcraProfileData | null> {
+    const identificacion = Number(cuil);
+    const umbralTtl = new Date(Date.now() - TTL_HORAS * 60 * 60 * 1000);
+
+    const personaReciente = await this.personaRepo.findOne({
+      where: { identificacion, updated_at: MoreThan(umbralTtl) },
+    });
+
+    if (personaReciente) {
+      this.logger.log(`BCRA cache hit para CUIL ${cuil} (updated_at: ${personaReciente.updated_at.toISOString()})`);
+      return this.cargarDesdeDB(cuil, personaReciente.denominacion);
+    }
+
+    // Cache miss o datos viejos: consultar BCRA y persistir
     const [deudas, historica, cheques] = await Promise.all([
       this.fetchSafe<BcraDeudorDto>(`/CentralDeDeudores/v1.0/Deudas/${cuil}`),
       this.fetchSafe<BcraDeudaHistoricaDto>(
@@ -131,6 +151,98 @@ export class BcraService extends BaseHttpService {
     };
   }
 
+  // ─── Cache: carga desde DB ────────────────────────────────────────────────
+
+  private async cargarDesdeDB(cuil: string, denominacion: string): Promise<BcraProfileData> {
+    const identificacion = Number(cuil);
+
+    const [periodos, histPeriodos, cheques] = await Promise.all([
+      this.deudaPeriodoRepo.find({
+        where: { identificacion },
+        relations: ['deudas_entidad'],
+      }),
+      this.deudaHistPeriodoRepo.find({
+        where: { identificacion },
+        relations: ['deudas_historica_entidad'],
+      }),
+      this.chequeRepo.find({ where: { identificacion } }),
+    ]);
+
+    const deudasResult: BcraDeudorResultadoDto | null = periodos.length > 0
+      ? {
+        identificacion,
+        denominacion,
+        periodos: periodos.map((dp) => ({
+          periodo: dp.periodo,
+          entidades: (dp.deudas_entidad ?? []).map((e) => ({
+            entidad: 0,
+            entidadNombre: e.entidad,
+            situacion: e.situacion,
+            monto: e.monto,
+            diasAtrasoPago: e.dias_atraso_pago,
+            refinanciaciones: e.refinanciaciones,
+            recategorizacionOblig: e.recategorizacion_oblig,
+            situacionJuridica: e.situacion_juridica,
+            irrecuperables: e.irrec_disposicion_tecnica,
+            enRevision: e.en_revision,
+            procesoJud: e.proceso_jud,
+          })),
+        })),
+      }
+      : null;
+
+    const historicaResult: BcraDeudorResultadoDto | null = histPeriodos.length > 0
+      ? {
+        identificacion,
+        denominacion,
+        periodos: histPeriodos.map((dhp) => ({
+          periodo: dhp.periodo,
+          entidades: (dhp.deudas_historica_entidad ?? []).map((e) => ({
+            entidad: 0,
+            entidadNombre: e.entidad,
+            situacion: e.situacion,
+            monto: e.monto,
+            diasAtrasoPago: null,
+            refinanciaciones: false,
+            recategorizacionOblig: false,
+            situacionJuridica: false,
+            irrecuperables: false,
+            enRevision: e.en_revision,
+            procesoJud: e.proceso_jud,
+          })),
+        })),
+      }
+      : null;
+
+    const chequesResult: BcraChequeResultado | null = cheques.length > 0
+      ? {
+        identificacion,
+        denominacion,
+        causales: cheques.map((ch) => ({
+          causal: ch.causal,
+          entidad: ch.entidad,
+          nroCheque: ch.nro_cheque,
+          fechaRechazo: ch.fecha_rechazo instanceof Date
+            ? ch.fecha_rechazo.toISOString()
+            : String(ch.fecha_rechazo),
+          monto: ch.monto,
+          fechaPago: ch.fecha_pago ? ch.fecha_pago.toISOString() : null,
+          fechaPagoMulta: ch.fecha_pago_multa ? ch.fecha_pago_multa.toISOString() : null,
+          estadoMulta: ch.estado_multa,
+          ctaPersonal: ch.cta_personal,
+          denomJuridica: ch.denom_juridica,
+          enRevision: ch.en_revision,
+          procesoJud: ch.proceso_jud,
+        })),
+      }
+      : null;
+
+    return { identificacion: cuil, denominacion, deudas: deudasResult, historica: historicaResult, cheques: chequesResult };
+  }
+
+  // ─── Helpers de fetch ───────────────────────────────────────────────────────
+
+  /** Llama a un endpoint BCRA y devuelve null en caso de 404 u otro error. */
   private async fetchSafe<T>(path: string): Promise<T | null> {
     try {
       return await this.get<T>(path);

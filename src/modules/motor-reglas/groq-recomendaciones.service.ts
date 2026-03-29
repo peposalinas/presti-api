@@ -62,11 +62,11 @@ export class GroqRecomendacionesService {
 
     const bcraResumen = bcraData
       ? {
-          denominacion: bcraData.denominacion,
-          deudas: bcraData.deudas?.periodos?.slice(0, 3) ?? [],
-          historica: bcraData.historica?.periodos?.slice(0, 3) ?? [],
-          chequesRechazados: bcraData.cheques?.causales?.length ?? 0,
-        }
+        denominacion: bcraData.denominacion,
+        deudas: bcraData.deudas?.periodos?.slice(0, 3) ?? [],
+        historica: bcraData.historica?.periodos?.slice(0, 3) ?? [],
+        chequesRechazados: bcraData.cheques?.causales?.length ?? 0,
+      }
       : { sinDatosBCRA: true };
 
     const prompt = `Sos un analista de crédito experto para una fintech argentina.
@@ -88,7 +88,7 @@ INSTRUCCIONES:
 
     try {
       const completion = await this.client.chat.completions.create({
-        model: "llama3-8b-8192",
+        model: "llama-3.1-8b-instant",
         messages: [{ role: "user", content: prompt }],
         response_format: { type: "json_object" },
       });
@@ -123,7 +123,7 @@ INSTRUCCIONES:
 
     try {
       const completion = await this.client.chat.completions.create({
-        model: "llama3-8b-8192",
+        model: "llama-3.1-8b-instant",
         messages: [{ role: "user", content: prompt }],
         response_format: { type: "json_object" },
       });
