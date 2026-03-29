@@ -35,7 +35,23 @@ export class SuscripcionesController {
 
   @Get('uso')
   @ApiOperation({ summary: 'Consultar el uso del día actual' })
-  getUsoHoy(@CurrentCliente() clienteId: string) {
-    return this.suscripcionesService.getUsoHoy(clienteId);
+  async getUsoHoy(@CurrentCliente() clienteId: string) {
+    const [uso, limites] = await Promise.all([
+      this.suscripcionesService.getUsoHoy(clienteId),
+      this.suscripcionesService.getLimitesCliente(clienteId),
+    ]);
+
+    const consultasHoy = uso.consultasRecomendaciones;
+    const limiteDiario = limites.maxConsultasDiarias;
+
+    return {
+      fecha: uso.fecha,
+      consultasHoy,
+      consultasRecomendaciones: consultasHoy,
+      total: consultasHoy,
+      used: consultasHoy,
+      remaining: Math.max(limiteDiario - consultasHoy, 0),
+      limiteDiario,
+    };
   }
 }

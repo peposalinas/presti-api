@@ -5,6 +5,7 @@ import { randomUUID } from "crypto";
 import {
   IsNull,
   LessThanOrEqual,
+  MoreThan,
   MoreThanOrEqual,
   Or,
   Repository,
@@ -15,9 +16,11 @@ import { Cliente } from "../modules/clientes/entities/cliente.entity";
 import { BcraDeudorDto } from "../modules/external-apis/bcra/dto/bcra-deudor.dto";
 import { Persona } from "../modules/external-apis/entities/persona.entity";
 import { PoliticaCrediticia } from "../modules/politica-crediticia/entities/politica-crediticia.entity";
+import { Recomendacion } from "../modules/motor-reglas/entities/recomendacion.entity";
 import { TipoProducto } from "../modules/productos/enums/tipo-producto.enum";
 import { Producto } from "../modules/productos/entities/producto.entity";
 import { ClienteSuscripcion } from "../modules/suscripciones/entities/cliente-suscripcion.entity";
+import { RegistroUso } from "../modules/suscripciones/entities/registro-uso.entity";
 import { TipoSuscripcion } from "../modules/suscripciones/enums/tipo-suscripcion.enum";
 import { Usuario } from "../modules/usuarios/entities/usuario.entity";
 
@@ -440,6 +443,167 @@ async function asegurarUsuarios(
   return { creados, actualizados, omitidosPorOtroCliente, origenNombres };
 }
 
+async function asegurarUsoHoy(
+  registroUsoRepository: Repository<RegistroUso>,
+  clienteId: string,
+  consultasObjetivo: number,
+): Promise<{ consultasAntes: number; consultasDespues: number }> {
+  const fechaHoy = new Date().toISOString().split("T")[0];
+  let registro = await registroUsoRepository.findOne({
+    where: { clienteId, fecha: fechaHoy },
+  });
+
+  const consultasAntes = registro?.consultasRecomendaciones ?? 0;
+  const consultasDespues = Math.max(consultasAntes, consultasObjetivo);
+
+  if (!registro) {
+    registro = registroUsoRepository.create({
+      clienteId,
+      fecha: fechaHoy,
+      consultasRecomendaciones: consultasDespues,
+    });
+  } else {
+    registro.consultasRecomendaciones = consultasDespues;
+  }
+
+  await registroUsoRepository.save(registro);
+
+  return { consultasAntes, consultasDespues };
+}
+
+async function asegurarRecomendacionesDemo(
+  recomendacionRepository: Repository<Recomendacion>,
+  usuarioRepository: Repository<Usuario>,
+  clienteId: string,
+  productosPorTipo: Record<TipoProducto, Producto>,
+): Promise<{
+  creadas: number;
+  aprobadasForzadas: number;
+  totalUltimos30Dias: number;
+  aprobadas: number;
+  rechazadas: number;
+  pendientes: number;
+}> {
+  const usuarios = await usuarioRepository.find({
+    where: { cliente: { id: clienteId } },
+    order: { cuil: "ASC" },
+  });
+  const productos = Object.values(productosPorTipo);
+
+  if (usuarios.length === 0 || productos.length === 0) {
+    return {
+      creadas: 0,
+      aprobadasForzadas: 0,
+      totalUltimos30Dias: 0,
+      aprobadas: 0,
+      rechazadas: 0,
+      pendientes: 0,
+    };
+  }
+
+  const desde = new Date();
+  desde.setDate(desde.getDate() - 30);
+
+  const recomendacionesExistentes = await recomendacionRepository.find({
+    where: {
+      cliente: { id: clienteId },
+      timestamp: MoreThan(desde),
+    },
+    relations: ["usuario", "producto"],
+    order: { timestamp: "DESC" },
+  });
+
+  const objetivoMinimo = 24;
+  const faltantes = Math.max(objetivoMinimo - recomendacionesExistentes.length, 0);
+  const nuevas: Recomendacion[] = [];
+
+  for (let i = 0; i < faltantes; i += 1) {
+    const usuario = usuarios[i % usuarios.length];
+    const producto = productos[(i + Math.floor(i / usuarios.length)) % productos.length];
+
+    const timestamp = new Date();
+    timestamp.setDate(timestamp.getDate() - (i % 14));
+    timestamp.setHours(8 + (i % 10), (i * 13) % 60, 0, 0);
+
+    let exito: boolean | null;
+    const bucket = i % 10;
+    if (bucket <= 5) {
+      exito = true;
+    } else if (bucket <= 7) {
+      exito = false;
+    } else {
+      exito = null;
+    }
+
+    nuevas.push(
+      recomendacionRepository.create({
+        timestamp,
+        exito,
+        cliente: { id: clienteId },
+        usuario: { cuil: usuario.cuil },
+        producto: { id: producto.id },
+      }),
+    );
+  }
+
+  if (nuevas.length > 0) {
+    await recomendacionRepository.save(nuevas);
+  }
+
+  let aprobadasForzadas = 0;
+  const recomendacionesVentana = [...recomendacionesExistentes, ...nuevas];
+  const tieneAprobadas = recomendacionesVentana.some(
+    (recomendacion) => recomendacion.exito === true,
+  );
+
+  if (!tieneAprobadas && recomendacionesVentana.length > 0) {
+    const forzarAprobadas = recomendacionesVentana.slice(
+      0,
+      Math.min(3, recomendacionesVentana.length),
+    );
+
+    for (const recomendacion of forzarAprobadas) {
+      if (recomendacion.exito !== true) {
+        recomendacion.exito = true;
+        aprobadasForzadas += 1;
+      }
+    }
+
+    if (aprobadasForzadas > 0) {
+      await recomendacionRepository.save(forzarAprobadas);
+    }
+  }
+
+  const recomendacionesFinales =
+    aprobadasForzadas > 0
+      ? await recomendacionRepository.find({
+          where: {
+            cliente: { id: clienteId },
+            timestamp: MoreThan(desde),
+          },
+        })
+      : recomendacionesVentana;
+
+  const aprobadas = recomendacionesFinales.filter(
+    (recomendacion) => recomendacion.exito === true,
+  ).length;
+  const rechazadas = recomendacionesFinales.filter(
+    (recomendacion) => recomendacion.exito === false,
+  ).length;
+  const pendientes = recomendacionesFinales.filter(
+    (recomendacion) => recomendacion.exito === null,
+  ).length;
+
+  return {
+    creadas: nuevas.length,
+    aprobadasForzadas,
+    totalUltimos30Dias: recomendacionesFinales.length,
+    aprobadas,
+    rechazadas,
+    pendientes,
+  };
+}
+
 async function main(): Promise<void> {
   const { validos: cuils, invalidos } = parsearCuils(obtenerArgumento("cuils"));
 
@@ -467,6 +631,8 @@ async function main(): Promise<void> {
     const politicaRepository = AppDataSource.getRepository(PoliticaCrediticia);
     const suscripcionRepository =
       AppDataSource.getRepository(ClienteSuscripcion);
+    const registroUsoRepository = AppDataSource.getRepository(RegistroUso);
+    const recomendacionRepository = AppDataSource.getRepository(Recomendacion);
     const apiKeyRepository = AppDataSource.getRepository(ApiKey);
 
     const cliente = await asegurarCliente(clienteRepository);
@@ -485,6 +651,13 @@ async function main(): Promise<void> {
       cuils,
       bcraBaseUrl,
     );
+    const recomendaciones = await asegurarRecomendacionesDemo(
+      recomendacionRepository,
+      usuarioRepository,
+      cliente.id,
+      productos.productosPorTipo,
+    );
+    const usoHoy = await asegurarUsoHoy(registroUsoRepository, cliente.id, 42);
 
     const passwordPlano =
       process.env.SEED_CLIENT_PASSWORD ?? DEFAULT_CLIENT_PASSWORD;
@@ -501,6 +674,15 @@ async function main(): Promise<void> {
     );
     console.log(
       `Usuarios -> creados: ${usuarios.creados}, actualizados: ${usuarios.actualizados}, omitidos por otro cliente: ${usuarios.omitidosPorOtroCliente}`,
+    );
+    console.log(
+      `Recomendaciones (ultimos 30 dias) -> creadas: ${recomendaciones.creadas}, total: ${recomendaciones.totalUltimos30Dias}, aprobadas: ${recomendaciones.aprobadas}, rechazadas: ${recomendaciones.rechazadas}, pendientes: ${recomendaciones.pendientes}`,
+    );
+    console.log(
+      `Aprobadas forzadas para evitar tasa 0%: ${recomendaciones.aprobadasForzadas}`,
+    );
+    console.log(
+      `Uso hoy -> consultas antes: ${usoHoy.consultasAntes}, consultas despues: ${usoHoy.consultasDespues}`,
     );
     console.log(
       `Origen de nombres -> persona local: ${usuarios.origenNombres.persona_local}, bcra api: ${usuarios.origenNombres.bcra_api}, random: ${usuarios.origenNombres.random}`,

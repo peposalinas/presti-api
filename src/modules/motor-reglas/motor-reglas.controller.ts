@@ -48,11 +48,15 @@ export class MotorReglasController {
     summary: "Listar recomendaciones creadas después de una timestamp (JWT o API Key)",
   })
   @ApiQuery({ name: "desde", required: true, description: "Timestamp ISO 8601. Devuelve recomendaciones creadas después de este momento." })
-  @ApiQuery({ name: "cuil", required: true, description: "CUIL del usuario (11 dígitos)." })
+  @ApiQuery({
+    name: "cuil",
+    required: false,
+    description: "CUIL del usuario (11 dígitos). Si se omite, lista todas las recomendaciones del cliente.",
+  })
   findAllRecomendaciones(
     @CurrentCliente() clienteId: string,
     @Query("desde") desde: string,
-    @Query("cuil") cuil: string,
+    @Query("cuil") cuil?: string,
   ) {
     return this.motorReglasService.findAllRecomendaciones(clienteId, desde, cuil);
   }
