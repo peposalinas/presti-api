@@ -1,21 +1,15 @@
-import { Injectable } from '@nestjs/common';
-import { HttpService } from '@nestjs/axios';
-import { ConfigService } from '@nestjs/config';
-import { BaseHttpService } from '../base/base-http.service';
-import {
-  BcraDeudaHistoricaDto,
-  BcraDeudorDto,
-} from './dto/bcra-deudor.dto';
+import { Injectable } from "@nestjs/common";
+import { HttpService } from "@nestjs/axios";
+import { ConfigService } from "@nestjs/config";
+import { BaseHttpService } from "../base/base-http.service";
+import { BcraDeudaHistoricaDto, BcraDeudorDto } from "./dto/bcra-deudor.dto";
 
 @Injectable()
 export class BcraService extends BaseHttpService {
-  constructor(
-    httpService: HttpService,
-    configService: ConfigService,
-  ) {
+  constructor(httpService: HttpService, configService: ConfigService) {
     super(
       httpService,
-      configService.get<string>('BCRA_BASE_URL', 'https://api.bcra.gob.ar'),
+      configService.get<string>("BCRA_BASE_URL", "https://api.bcra.gob.ar"),
       // La API del BCRA es pública, no requiere autenticación
     );
   }
@@ -25,9 +19,7 @@ export class BcraService extends BaseHttpService {
    * Endpoint: GET /centraldedeudores/v1.0/Deudas/{identificacion}
    */
   async getDeudoresPorCuit(cuit: string): Promise<BcraDeudorDto> {
-    return this.get<BcraDeudorDto>(
-      `/centraldedeudores/v1.0/Deudas/${cuit}`,
-    );
+    return this.get<BcraDeudorDto>(`/CentralDeDeudores/v1.0/Deudas/${cuit}`);
   }
 
   /**
