@@ -9,6 +9,12 @@ import { CarteraService } from './cartera.service';
 export class CarteraController {
   constructor(private readonly carteraService: CarteraService) {}
 
+  @Get('tamanio')
+  @ApiOperation({ summary: 'Cantidad de usuarios monitoreados en la cartera' })
+  getTamanio(@CurrentCliente() clienteId: string) {
+    return this.carteraService.getTamanio(clienteId);
+  }
+
   @Get()
   @ApiOperation({
     summary: 'Cambios de situación crediticia detectados en la cartera',

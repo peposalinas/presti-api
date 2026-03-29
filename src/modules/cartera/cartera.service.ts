@@ -53,6 +53,10 @@ export class CarteraService {
     }
   }
 
+  getTamanio(clienteId: string): Promise<number> {
+    return this.consultaRepo.count({ where: { cliente: { id: clienteId } } });
+  }
+
   getPortfolio(clienteId: string, meses: number): Promise<CambioSituacion[]> {
     const desde = new Date();
     desde.setMonth(desde.getMonth() - meses);
