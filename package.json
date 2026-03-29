@@ -22,6 +22,7 @@
     "seed:demo": "ts-node -r tsconfig-paths/register src/scripts/seed-demo.ts"
   },
   "dependencies": {
+    "@nestjs/cli": "^10.0.0",
     "@google/generative-ai": "^0.24.1",
     "@nestjs/axios": "^3.0.2",
     "@nestjs/common": "^10.0.0",
@@ -49,7 +50,6 @@
     "typeorm": "^0.3.20"
   },
   "devDependencies": {
-    "@nestjs/cli": "^10.0.0",
     "@nestjs/schematics": "^10.0.0",
     "@nestjs/testing": "^10.0.0",
     "@types/bcrypt": "^6.0.0",

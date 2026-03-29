@@ -1,9 +1,8 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { Repository } from "typeorm";
+import { MoreThan, Repository } from "typeorm";
 import { BcraService } from "../external-apis/bcra/bcra.service";
 import { Producto } from "../productos/entities/producto.entity";
-import { SuscripcionesService } from "../suscripciones/suscripciones.service";
 import { Usuario } from "../usuarios/entities/usuario.entity";
 import { CreateRecomendacionDto } from "./dto/create-recomendacion.dto";
 import { CreateReglaDto } from "./dto/create-regla.dto";
@@ -11,9 +10,7 @@ import { UpdateRecomendacionDto } from "./dto/update-recomendacion.dto";
 import { UpdateReglaDto } from "./dto/update-regla.dto";
 import { Recomendacion } from "./entities/recomendacion.entity";
 import { Regla } from "./entities/regla.entity";
-import { Operador } from "./enums/operador.enum";
-import { Parametro } from "./enums/parametro.enum";
-import { TipoValor } from "./enums/tipo-valor.enum";
+import { GroqRecomendacionesService } from "./groq-recomendaciones.service";
 
 @Injectable()
 export class MotorReglasService {
@@ -27,7 +24,7 @@ export class MotorReglasService {
     @InjectRepository(Usuario)
     private readonly usuarioRepository: Repository<Usuario>,
     private readonly bcraService: BcraService,
-    private readonly suscripcionesService: SuscripcionesService,
+    private readonly groqService: GroqRecomendacionesService,
   ) {}
 
   // ── Reglas ────────────────────────────────────────────────────────────────
@@ -48,10 +45,7 @@ export class MotorReglasService {
   }
 
   createRegla(dto: CreateReglaDto, clienteId: string): Promise<Regla> {
-    const regla = this.reglaRepository.create({
-      ...dto,
-      clienteId,
-    });
+    const regla = this.reglaRepository.create({ ...dto, clienteId });
     return this.reglaRepository.save(regla);
   }
 
@@ -72,19 +66,20 @@ export class MotorReglasService {
 
   // ── Recomendaciones ───────────────────────────────────────────────────────
 
-  findAllRecomendaciones(
+  async findAllRecomendaciones(
     clienteId: string,
-    filters: { usuarioCuil?: string; productoId?: string },
-  ): Promise<Recomendacion[]> {
-    const where: Record<string, unknown> = { cliente: { id: clienteId } };
-    if (filters.usuarioCuil) where.usuario = { cuil: filters.usuarioCuil };
-    if (filters.productoId) where.producto = { id: filters.productoId };
-
-    return this.recomendacionRepository.find({
-      where,
-      relations: ["usuario", "producto"],
+    desde: string,
+  ): Promise<{ id: string; producto: Producto }[]> {
+    const recomendaciones = await this.recomendacionRepository.find({
+      where: {
+        cliente: { id: clienteId },
+        timestamp: MoreThan(new Date(desde)),
+      },
+      relations: ["producto"],
       order: { timestamp: "DESC" },
     });
+
+    return recomendaciones.map((r) => ({ id: r.id, producto: r.producto }));
   }
 
   async findOneRecomendacion(
@@ -112,152 +107,48 @@ export class MotorReglasService {
   async createRecomendacion(
     dto: CreateRecomendacionDto,
     clienteId: string,
-  ): Promise<Recomendacion[]> {
-    await this.suscripcionesService.verificarYRegistrarConsulta(clienteId);
+  ): Promise<void> {
+    // ── Paso 1: Consultar BCRA y persistir datos públicos ───────────────────
+    const bcraData = await this.bcraService.fetchAndPersist(dto.cuil);
 
-    // ── Paso 1: Upsert Usuario ───────────────────────────────────────────────
-    let usuario = await this.usuarioRepository.findOne({
+    // ── Paso 2: Upsert usuario ───────────────────────────────────────────────
+    const usuarioExistente = await this.usuarioRepository.findOne({
       where: { cuil: dto.cuil },
     });
 
-    if (!usuario) {
-      usuario = this.usuarioRepository.create({
-        cuil: dto.cuil,
-        nombre: dto.nombre,
-        fechaNacimiento: new Date(dto.fechaNacimiento),
-        cliente: { id: clienteId },
-      });
-      await this.usuarioRepository.save(usuario);
-    } else if (dto.update) {
-      usuario.nombre = dto.nombre;
-      usuario.fechaNacimiento = new Date(dto.fechaNacimiento);
-      await this.usuarioRepository.save(usuario);
+    if (!usuarioExistente) {
+      const nombre = bcraData?.denominacion ?? dto.cuil;
+      await this.usuarioRepository.save(
+        this.usuarioRepository.create({
+          cuil: dto.cuil,
+          nombre: nombre.slice(0, 100),
+          cliente: { id: clienteId },
+        }),
+      );
     }
-
-    // ── Paso 2: Datos para evaluación ────────────────────────────────────────
-    const edad = this.calcularEdad(new Date(dto.fechaNacimiento));
-
-    let situacionBcra: number | null = null;
-    try {
-      const bcraData = await this.bcraService.getDeudoresPorCuit(dto.cuil);
-      situacionBcra = this.extraerSituacionBcra(bcraData);
-    } catch {
-      // Si el CUIL no tiene deudas en BCRA o el servicio falla, se omite
-      situacionBcra = null;
-    }
-
-    const contexto: Partial<Record<Parametro, number | null>> = {
-      [Parametro.EDAD]: edad,
-      [Parametro.SITUACION_BCRA]: situacionBcra,
-      // TODO: integrar con modelo de IA para los siguientes parámetros
-      [Parametro.SCORE_CREDITICIO]: null,
-      [Parametro.MONTO_SOLICITADO]: null,
-      [Parametro.PLAZO_SOLICITADO]: null,
-      [Parametro.INGRESOS]: null,
-    };
 
     // ── Paso 3: Productos activos del cliente ────────────────────────────────
     const productos = await this.productoRepository.find({
       where: { clienteId, activo: true },
     });
 
-    // ── Paso 4: Reglas del cliente ───────────────────────────────────────────
-    const reglas = await this.reglaRepository.find({ where: { clienteId } });
+    if (productos.length === 0) return;
 
-    // ── Paso 5: Evaluar por producto y crear recomendaciones ─────────────────
-    const recomendaciones: Recomendacion[] = [];
+    // ── Paso 4: IA recomienda productos en base a perfil BCRA ────────────────
+    const productoIds = await this.groqService.recomendarPorBcra(bcraData, productos);
 
-    for (const producto of productos) {
-      const reglasAplicables = reglas.filter(
-        (r) => r.productoId === producto.id,
-      );
-
-      const cumpleTodasLasReglas = reglasAplicables.every((regla) => {
-        const valorContexto = contexto[regla.parametro];
-        if (valorContexto === null || valorContexto === undefined) {
-          // Parámetro sin dato disponible: omitir regla (no bloquea)
-          return true;
-        }
-        return this.evaluarRegla(regla, valorContexto);
-      });
-
-      if (cumpleTodasLasReglas) {
-        const rec = this.recomendacionRepository.create({
-          timestamp: new Date(),
-          exito: false,
+    // ── Paso 5: Crear recomendaciones ────────────────────────────────────────
+    const ahora = new Date();
+    for (const productoId of productoIds) {
+      await this.recomendacionRepository.save(
+        this.recomendacionRepository.create({
+          timestamp: ahora,
+          exito: null,
           cliente: { id: clienteId },
           usuario: { cuil: dto.cuil },
-          producto: { id: producto.id },
-        });
-        recomendaciones.push(await this.recomendacionRepository.save(rec));
-      }
-    }
-
-    return recomendaciones;
-  }
-
-  // ── Helpers ───────────────────────────────────────────────────────────────
-
-  private calcularEdad(fechaNacimiento: Date): number {
-    const hoy = new Date();
-    let edad = hoy.getFullYear() - fechaNacimiento.getFullYear();
-    const mesActual = hoy.getMonth() - fechaNacimiento.getMonth();
-    if (
-      mesActual < 0 ||
-      (mesActual === 0 && hoy.getDate() < fechaNacimiento.getDate())
-    ) {
-      edad--;
-    }
-    return edad;
-  }
-
-  private extraerSituacionBcra(
-    bcraData: Awaited<ReturnType<BcraService["getDeudoresPorCuit"]>>,
-  ): number | null {
-    const periodos = bcraData?.results?.periodos;
-    if (!periodos || periodos.length === 0) return null;
-
-    // Período más reciente (ordenado desc por período YYYY-MM)
-    const ultimoPeriodo = periodos.sort((a, b) =>
-      b.periodo.localeCompare(a.periodo),
-    )[0];
-    if (!ultimoPeriodo.entidades || ultimoPeriodo.entidades.length === 0)
-      return null;
-
-    // Peor situación (valor más alto) entre todas las entidades del período
-    return Math.max(...ultimoPeriodo.entidades.map((e) => e.situacion));
-  }
-
-  private evaluarRegla(regla: Regla, valor: number): boolean {
-    const umbral = this.parsearValor(regla.valor, regla.tipoValor);
-    if (umbral === null) return true;
-
-    switch (regla.operador) {
-      case Operador.IGUAL:
-        return valor === umbral;
-      case Operador.DISTINTO:
-        return valor !== umbral;
-      case Operador.MAYOR_QUE:
-        return valor > umbral;
-      case Operador.MENOR_QUE:
-        return valor < umbral;
-      case Operador.MAYOR_O_IGUAL:
-        return valor >= umbral;
-      case Operador.MENOR_O_IGUAL:
-        return valor <= umbral;
-    }
-  }
-
-  private parsearValor(valor: string, tipoValor: TipoValor): number | null {
-    switch (tipoValor) {
-      case TipoValor.NUMERO:
-        return Number(valor);
-      case TipoValor.BOOLEANO:
-        return valor === "true" ? 1 : 0;
-      case TipoValor.FECHA:
-        return new Date(valor).getTime();
-      case TipoValor.TEXTO:
-        return null; // comparaciones de texto no soportadas aún
+          producto: { id: productoId },
+        }),
+      );
     }
   }
 }

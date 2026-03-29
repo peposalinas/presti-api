@@ -22,6 +22,7 @@ import {
 import { CurrentCliente } from "../auth/decorators/current-cliente.decorator";
 import { Public } from "../auth/decorators/public.decorator";
 import { JwtOrApiKeyAuthGuard } from "../auth/guards/jwt-or-api-key-auth.guard";
+import { ConsultaLimitGuard } from "../suscripciones/guards/consulta-limit.guard";
 import { CreateRecomendacionDto } from "./dto/create-recomendacion.dto";
 import { CreateReglaDto } from "./dto/create-regla.dto";
 import { ObtenerRecomendacionesDto } from "./dto/obtener-recomendaciones.dto";
@@ -92,19 +93,14 @@ export class MotorReglasController {
   @ApiBearerAuth()
   @ApiSecurity("x-api-key")
   @ApiOperation({
-    summary: "Listar recomendaciones con filtros opcionales (JWT o API Key)",
+    summary: "Listar recomendaciones creadas después de una timestamp (JWT o API Key)",
   })
-  @ApiQuery({ name: "usuarioCuil", required: false })
-  @ApiQuery({ name: "productoId", required: false })
+  @ApiQuery({ name: "desde", required: true, description: "Timestamp ISO 8601. Devuelve recomendaciones creadas después de este momento." })
   findAllRecomendaciones(
     @CurrentCliente() clienteId: string,
-    @Query("usuarioCuil") usuarioCuil?: string,
-    @Query("productoId") productoId?: string,
+    @Query("desde") desde: string,
   ) {
-    return this.motorReglasService.findAllRecomendaciones(clienteId, {
-      usuarioCuil,
-      productoId,
-    });
+    return this.motorReglasService.findAllRecomendaciones(clienteId, desde);
   }
 
   @ApiTags("Recomendaciones")
@@ -123,13 +119,14 @@ export class MotorReglasController {
 
   @ApiTags("Recomendaciones")
   @Public()
-  @UseGuards(JwtOrApiKeyAuthGuard)
+  @UseGuards(JwtOrApiKeyAuthGuard, ConsultaLimitGuard)
   @Post("recomendaciones")
+  @HttpCode(HttpStatus.NO_CONTENT)
   @ApiBearerAuth()
   @ApiSecurity("x-api-key")
   @ApiOperation({
     summary:
-      "Evaluar reglas para un usuario y generar recomendaciones de productos (JWT o API Key)",
+      "Evaluar perfil BCRA de un usuario y generar recomendaciones de productos con IA (JWT o API Key)",
   })
   createRecomendacion(
     @Body() dto: CreateRecomendacionDto,
@@ -183,10 +180,6 @@ export class MotorReglasController {
       type: "object",
       additionalProperties: true,
       example: {
-        host: "aws-1-sa-east-1.pooler.supabase.com",
-        port: 5432,
-        database: "postgres",
-        user: "postgres.nyiyfilbvjakagxpcvhs",
         edad: 25,
         salario: 1000000,
       },

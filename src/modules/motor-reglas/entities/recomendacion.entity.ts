@@ -17,8 +17,8 @@ export class Recomendacion {
   @Column({ type: 'timestamp' })
   timestamp: Date;
 
-  @Column({ type: 'boolean' })
-  exito: boolean;
+  @Column({ type: 'boolean', nullable: true, default: null })
+  exito: boolean | null;
 
   @ManyToOne(() => Cliente)
   @JoinColumn({ name: 'cliente_id' })
